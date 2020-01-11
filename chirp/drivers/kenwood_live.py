@@ -73,11 +73,13 @@ def command(ser, cmd, *args):
 
     LOCK.acquire()
 
+    # TODO: This global use of LAST_DELIMITER breaks reentrancy
+    # and needs to be fixed.
     if args:
         cmd += LAST_DELIMITER[1] + LAST_DELIMITER[1].join(args)
     cmd += LAST_DELIMITER[0]
 
-    LOG.debug("PC->RADIO: %s" % cmd.strip())
+    LOG.debug("PC->RADIO: %r" % cmd.strip())
     ser.write(cmd)
 
     result = ""
@@ -88,7 +90,7 @@ def command(ser, cmd, *args):
             break
 
     if result.endswith(LAST_DELIMITER[0]):
-        LOG.debug("RADIO->PC: %s" % result.strip())
+        LOG.debug("RADIO->PC: %r" % result.strip())
         result = result[:-1]
     else:
         LOG.error("Giving up")
@@ -103,13 +105,16 @@ def get_id(ser):
     global LAST_BAUD
     bauds = [4800, 9600, 19200, 38400, 57600, 115200]
     bauds.remove(LAST_BAUD)
-    bauds.insert(0, LAST_BAUD)
+    # Make sure LAST_BAUD is last so that it is tried first below
+    bauds.append(LAST_BAUD)
 
     global LAST_DELIMITER
     command_delimiters = [("\r", " "), (";", "")]
 
-    for i in bauds:
-        for delimiter in command_delimiters:
+    for delimiter in command_delimiters:
+        # Process the baud options in reverse order so that we try the
+        # last one first, and then start with the high-speed ones next
+        for i in reversed(bauds):
             LAST_DELIMITER = delimiter
             LOG.info("Trying ID at baud %i with delimiter \"%s\"" %
                      (i, repr(delimiter)))
@@ -122,6 +127,16 @@ def get_id(ser):
             if " " in resp:
                 LAST_BAUD = i
                 return resp.split(" ")[1]
+
+            # Radio responded in the right baud rate,
+            # but threw an error because of all the crap
+            # we have been hurling at it. Retry the ID at this
+            # baud rate, which will almost definitely work.
+            if "?" in resp:
+                resp = command(ser, "ID")
+                LAST_BAUD = i
+                if " " in resp:
+                    return resp.split(" ")[1]
 
             # Kenwood radios that return ID numbers
             if resp in RADIO_IDS.keys():
@@ -327,9 +342,14 @@ class KenwoodLiveRadio(chirp_common.LiveRadio):
             if isinstance(element.value, RadioSettingValueBoolean):
                 self._kenwood_set_bool(element.get_name(), element.value)
             elif isinstance(element.value, RadioSettingValueList):
-                options = self._SETTINGS_OPTIONS[element.get_name()]
+                options = self._get_setting_options(element.get_name())
+                if len(options) > 9:
+                    digits = 2
+                else:
+                    digits = 1
                 self._kenwood_set_int(element.get_name(),
-                                      options.index(str(element.value)))
+                                      options.index(str(element.value)),
+                                      digits)
             elif isinstance(element.value, RadioSettingValueInteger):
                 if element.value.get_max() > 9:
                     digits = 2
@@ -366,9 +386,13 @@ class THD7Radio(KenwoodOldLiveRadio):
 
     _kenwood_split = True
 
+    _BEP_OPTIONS = ["Off", "Key", "Key+Data", "All"]
+    _POSC_OPTIONS = ["Off Duty", "Enroute", "In Service", "Returning",
+                     "Committed", "Special", "Priority", "Emergency"]
+
     _SETTINGS_OPTIONS = {
         "BAL": ["4:0", "3:1", "2:2", "1:3", "0:4"],
-        "BEP": ["Off", "Key", "Key+Data", "All"],
+        "BEP": None,
         "BEPT": ["Off", "Mine", "All New"],  # D700 has fourth "All"
         "DS": ["Data Band", "Both Bands"],
         "DTB": ["A", "B"],
@@ -378,8 +402,7 @@ class THD7Radio(KenwoodOldLiveRadio):
                 "Plane", "Speedboat", "Car", "Bicycle"],
         "MNF": ["Name", "Frequency"],
         "PKSA": ["1200", "9600"],
-        "POSC": ["Off Duty", "Enroute", "In Service", "Returning",
-                 "Committed", "Special", "Priority", "Emergency"],
+        "POSC": None,
         "PT": ["100ms", "200ms", "500ms", "750ms",
                "1000ms", "1500ms", "2000ms"],
         "SCR": ["Time", "Carrier", "Seek"],
@@ -408,6 +431,7 @@ class THD7Radio(KenwoodOldLiveRadio):
         rf.valid_characters = \
             chirp_common.CHARSET_ALPHANUMERIC + "/.-+*)('&%$#! ~}|{"
         rf.valid_name_length = 7
+        rf.valid_tuning_steps = STEPS
         rf.memory_bounds = (1, self._upper)
         return rf
 
@@ -459,6 +483,22 @@ class THD7Radio(KenwoodOldLiveRadio):
 
         return mem
 
+    EXTRA_BOOL_SETTINGS = {
+        'main': [("LMP", "Lamp")],
+        'dtmf': [("TXH", "TX Hold")],
+    }
+    EXTRA_LIST_SETTINGS = {
+        'main': [("BAL", "Balance"),
+                 ("MNF", "Memory Display Mode")],
+        'save': [("SV", "Battery Save")],
+    }
+
+    def _get_setting_options(self, setting):
+        opts = self._SETTINGS_OPTIONS[setting]
+        if opts is None:
+            opts = getattr(self, '_%s_OPTIONS' % setting)
+        return opts
+
     def get_settings(self):
         main = RadioSettingGroup("main", "Main")
         aux = RadioSettingGroup("aux", "Aux")
@@ -481,9 +521,7 @@ class THD7Radio(KenwoodOldLiveRadio):
                  # ("DIG", aprs, "APRS Digipeater"),
                  ("DL", main, "Dual"),
                  ("LK", main, "Lock"),
-                 ("LMP", main, "Lamp"),
                  ("TSP", dtmf, "DTMF Fast Transmission"),
-                 ("TXH", dtmf, "TX Hold"),
                  ]
 
         for setting, group, name in bools:
@@ -492,19 +530,16 @@ class THD7Radio(KenwoodOldLiveRadio):
                               RadioSettingValueBoolean(value))
             group.append(rs)
 
-        lists = [("BAL", main, "Balance"),
-                 ("BEP", aux, "Beep"),
+        lists = [("BEP", aux, "Beep"),
                  ("BEPT", aprs, "APRS Beep"),
                  ("DS", tnc, "Data Sense"),
                  ("DTB", tnc, "Data Band"),
                  ("DTBA", aprs, "APRS Data Band"),
                  ("DTX", aprs, "APRS Data TX"),
                  # ("ICO", aprs, "APRS Icon"),
-                 ("MNF", main, "Memory Display Mode"),
                  ("PKSA", aprs, "APRS Packet Speed"),
                  ("POSC", aprs, "APRS Position Comment"),
                  ("PT", dtmf, "DTMF Speed"),
-                 ("SV", save, "Battery Save"),
                  ("TEMP", aprs, "APRS Temperature Units"),
                  ("TXI", aprs, "APRS Transmit Interval"),
                  # ("UNIT", aprs, "APRS Display Units"),
@@ -513,11 +548,28 @@ class THD7Radio(KenwoodOldLiveRadio):
 
         for setting, group, name in lists:
             value = self._kenwood_get_int(setting)
-            options = self._SETTINGS_OPTIONS[setting]
+            options = self._get_setting_options(setting)
             rs = RadioSetting(setting, name,
                               RadioSettingValueList(options,
                                                     options[value]))
             group.append(rs)
+
+        for group_name, settings in self.EXTRA_BOOL_SETTINGS.items():
+            group = locals()[group_name]
+            for setting, name in settings:
+                value = self._kenwood_get_bool(setting)
+                rs = RadioSetting(setting, name,
+                                  RadioSettingValueBoolean(value))
+                group.append(rs)
+
+        for group_name, settings in self.EXTRA_LIST_SETTINGS.items():
+            group = locals()[group_name]
+            for setting, name in settings:
+                value = self._kenwood_get_int(setting)
+                options = self._get_setting_options(setting)
+                rs = RadioSetting(setting, name,
+                                  RadioSettingValueBoolean(value))
+                group.append(rs)
 
         ints = [("CNT", display, "Contrast", 1, 16),
                 ]
@@ -555,25 +607,35 @@ class THD7GRadio(THD7Radio):
 
 
 @directory.register
-class TMD700Radio(KenwoodOldLiveRadio):
+class TMD700Radio(THD7Radio):
     """Kenwood TH-D700"""
     MODEL = "TM-D700"
 
     _kenwood_split = True
 
+    _BEP_OPTIONS = ["Off", "Key"]
+    _POSC_OPTIONS = ["Off Duty", "Enroute", "In Service", "Returning",
+                     "Committed", "Special", "Priority", "CUSTOM 0",
+                     "CUSTOM 1", "CUSTOM 2", "CUSTOM 4", "CUSTOM 5",
+                     "CUSTOM 6", "Emergency"]
+    EXTRA_BOOL_SETTINGS = {}
+    EXTRA_LIST_SETTINGS = {}
+
     def get_features(self):
         rf = chirp_common.RadioFeatures()
+        rf.has_settings = True
         rf.has_dtcs = True
         rf.has_dtcs_polarity = False
         rf.has_bank = False
-        rf.has_mode = False
+        rf.has_mode = True
         rf.has_tuning_step = False
         rf.can_odd_split = True
         rf.valid_duplexes = ["", "-", "+", "split"]
-        rf.valid_modes = ["FM"]
+        rf.valid_modes = ["FM", "AM"]
         rf.valid_tmodes = ["", "Tone", "TSQL", "DTCS"]
         rf.valid_characters = chirp_common.CHARSET_ALPHANUMERIC
         rf.valid_name_length = 8
+        rf.valid_tuning_steps = STEPS
         rf.memory_bounds = (1, self._upper)
         return rf
 
@@ -641,6 +703,7 @@ class TMV7Radio(KenwoodOldLiveRadio):
         rf.valid_tmodes = ["", "Tone", "TSQL"]
         rf.valid_characters = chirp_common.CHARSET_ALPHANUMERIC
         rf.valid_name_length = 7
+        rf.valid_tuning_steps = STEPS
         rf.has_sub_devices = True
         rf.memory_bounds = (1, self._upper)
         return rf

@@ -177,7 +177,7 @@ def _echo_write(radio, data):
     try:
         radio.pipe.write(data)
         radio.pipe.read(len(data))
-    except Exception, e:
+    except Exception as e:
         LOG.error("Error writing to radio: %s" % e)
         raise errors.RadioError("Unable to write to radio")
 
@@ -185,7 +185,7 @@ def _echo_write(radio, data):
 def _read(radio, length):
     try:
         data = radio.pipe.read(length)
-    except Exception, e:
+    except Exception as e:
         LOG.error("Error reading from radio: %s" % e)
         raise errors.RadioError("Unable to read from radio")
 
@@ -513,7 +513,7 @@ class AnyTone5888UVRadio(chirp_common.CloneModeRadio,
 
         rs = RadioSetting("welcome", "Welcome Message",
                           RadioSettingValueString(0, 8,
-                                                  filter(_settings.welcome)))
+                                                  list(filter(_settings.welcome))))
         basic.append(rs)
 
         rs = RadioSetting("beep", "Beep Enabled",

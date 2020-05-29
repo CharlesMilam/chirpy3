@@ -13,9 +13,9 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import gtk
-import gobject
-import pango
+from gi.repository import Gtk as gtk
+from gi.repository import GObject as gobject
+from gi.repository import Pango as pango
 import logging
 
 from chirp import errors, chirp_common, import_logic
@@ -265,7 +265,7 @@ class ImportDialog(gtk.Dialog):
                                               {"number":  new,
                                                "name":    name,
                                                "comment": comm})
-            except import_logic.ImportError, e:
+            except import_logic.ImportError as e:
                 LOG.error("Import error: %s", e)
                 error_messages[new] = str(e)
                 continue
@@ -279,9 +279,9 @@ class ImportDialog(gtk.Dialog):
             job.set_desc(_("Importing bank information"))
             dst_rthread._qsubmit(job, 0)
 
-        if error_messages.keys():
+        if list(error_messages.keys()):
             msg = _("Error importing memories:") + "\r\n"
-            for num, msgs in error_messages.items():
+            for num, msgs in list(error_messages.items()):
                 msg += "%s: %s" % (num, ",".join(msgs))
             common.show_error(msg)
 
@@ -303,7 +303,7 @@ class ImportDialog(gtk.Dialog):
 
         tips = gtk.Tooltips()
 
-        for k in self.caps.keys():
+        for k in list(self.caps.keys()):
             t = self.types[k]
 
             if t == gobject.TYPE_BOOLEAN:
@@ -325,7 +325,7 @@ class ImportDialog(gtk.Dialog):
             if k == self.col_nloc:
                 column.set_cell_data_func(rend, self._render, k)
 
-            if k in self.tips.keys():
+            if k in list(self.tips.keys()):
                 LOG.debug("Doing %s" % k)
                 lab = gtk.Label(self.caps[k])
                 column.set_widget(lab)
@@ -518,7 +518,7 @@ class ImportDialog(gtk.Dialog):
         except errors.InvalidMemoryLocation:
             LOG.error("Location %i empty or at limit of destination radio" %
                       number)
-        except errors.InvalidDataError, e:
+        except errors.InvalidDataError as e:
             LOG.error("Got error from radio, assuming %i beyond limits: %s" %
                       (number, e))
 
@@ -529,9 +529,9 @@ class ImportDialog(gtk.Dialog):
                 self.ww.set(float(i) / end)
             try:
                 mem = self.src_radio.get_memory(i)
-            except errors.InvalidMemoryLocation, e:
+            except errors.InvalidMemoryLocation as e:
                 continue
-            except Exception, e:
+            except Exception as e:
                 self.__store.append(row=(False,
                                          i,
                                          i,
@@ -651,4 +651,4 @@ if __name__ == "__main__":
     d = ImportDialog(radio)
     d.run()
 
-    print d.get_import_list()
+    print((d.get_import_list()))

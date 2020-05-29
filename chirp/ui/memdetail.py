@@ -13,7 +13,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import gtk
+from gi.repository import Gtk as gtk
 import os
 import logging
 
@@ -61,24 +61,24 @@ class ValueEditor:
 
         try:
             newval = self._get_value()
-        except ValueError, e:
+        except ValueError as e:
             self._errfn(self._name, str(e))
             return str(e)
 
         if self._name.startswith("extra_"):
             try:
                 self._memory.extra[self._name.split("_", 1)[1]].value = newval
-            except settings.InternalError, e:
+            except settings.InternalError as e:
                 self._errfn(self._name, str(e))
                 return str(e)
         else:
             try:
                 setattr(self._memory, self._name, newval)
-            except chirp_common.ImmutableValueError, e:
+            except chirp_common.ImmutableValueError as e:
                 if getattr(self._memory, self._name) != self._get_value():
                     self._errfn(self._name, str(e))
                     return str(e)
-            except ValueError, e:
+            except ValueError as e:
                 self._errfn(self._name, str(e))
                 return str(e)
 
@@ -227,7 +227,7 @@ class MemoryDetailEditor(gtk.Dialog):
             try:
                 _img = self._editors[name][2]
             except KeyError:
-                LOG.error(self._editors.keys())
+                LOG.error(list(self._editors.keys()))
             if msg is None:
                 _img.clear()
                 self._tips.set_tip(_img, "")
@@ -411,4 +411,4 @@ class MultiMemoryDetailEditor(MemoryDetailEditor):
         self._selections[name] = selector
 
     def get_fields(self):
-        return [k for k, v in self._selections.items() if v.get_active()]
+        return [k for k, v in list(self._selections.items()) if v.get_active()]

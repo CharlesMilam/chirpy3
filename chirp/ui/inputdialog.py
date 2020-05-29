@@ -13,10 +13,11 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import gtk
+from gi.repository import Gtk as gtk
+
 import logging
 
-from miscwidgets import make_choice
+from .miscwidgets import make_choice
 from chirp.ui import reporting
 
 LOG = logging.getLogger(__name__)
@@ -98,7 +99,7 @@ class ExceptionDialog(gtk.MessageDialog):
 
 class FieldDialog(gtk.Dialog):
     def __init__(self, **kwargs):
-        if "buttons" not in kwargs.keys():
+        if "buttons" not in list(kwargs.keys()):
             kwargs["buttons"] = (gtk.STOCK_OK, gtk.RESPONSE_OK,
                                  gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL)
 

@@ -172,7 +172,7 @@ def _connect_radio(radio):
         if resp == radio.ID:           # Good comms
             resp = command(radio.pipe, "AI0", 0, W8L)
             return
-        elif resp in RADIO_IDS.keys():
+        elif resp in list(RADIO_IDS.keys()):
             msg = "Radio reported as model %s, not %s!" % \
                 (RADIO_IDS[resp], radio.MODEL)
             raise errors.RadioError(msg)
@@ -1138,7 +1138,7 @@ class TS480Radio(chirp_common.CloneModeRadio):
                     elif element.value.get_mutable():
                         LOG.debug("Setting %s = %s" % (setting, element.value))
                         setattr(obj, setting, element.value)
-                except Exception, e:
+                except Exception as e:
                     LOG.debug(element.get_name())
                     raise
         return

@@ -13,9 +13,11 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import gtk
-import gobject
-import pango
+from gi.repository import Gtk as gtk
+from gi.repository import Pango as pango
+from gi.repository import GObject as gobject
+from gi.repository import Gdk, GdkPixbuf
+from gi.repository.GdkPixbuf import Pixbuf
 
 import os
 import logging
@@ -130,7 +132,7 @@ class KeyedListWidget(gtk.HBox):
         try:
             (store, iter) = self.__view.get_selection().get_selected()
             return store.get(iter, 0)[0]
-        except Exception, e:
+        except Exception as e:
             LOG.error("Unable to find selected: %s" % e)
             return None
 
@@ -204,7 +206,7 @@ class ListWidget(gtk.HBox):
     __gsignals__ = {
         "click-on-list": (gobject.SIGNAL_RUN_LAST,
                           gobject.TYPE_NONE,
-                          (gtk.TreeView, gtk.gdk.Event)),
+                          (gtk.TreeView, Gdk.Event)),
         "item-toggled": (gobject.SIGNAL_RUN_LAST,
                          gobject.TYPE_NONE,
                          (gobject.TYPE_PYOBJECT,)),
@@ -300,7 +302,7 @@ class ListWidget(gtk.HBox):
         try:
             (lst, iter) = self._view.get_selection().get_selected()
             lst.remove(iter)
-        except Exception, e:
+        except Exception as e:
             LOG.error("Unable to remove selected: %s" % e)
 
     def get_selected(self, take_default=False):
@@ -322,7 +324,7 @@ class ListWidget(gtk.HBox):
                 target = lst.get_iter(pos-1)
             elif delta < 0:
                 target = lst.get_iter(pos+1)
-        except Exception, e:
+        except Exception as e:
             return False
 
         if target:
@@ -409,7 +411,7 @@ class TreeWidget(ListWidget):
 
     def _set_values(self, parent, vals):
         if isinstance(vals, dict):
-            for key, val in vals.items():
+            for key, val in list(vals.items()):
                 iter = self._store.append(parent)
                 self._store.set(iter, self._key, key)
                 self._set_values(iter, val)
@@ -464,7 +466,7 @@ class ProgressDialog(gtk.Window):
     def __init__(self, title, parent=None):
         gtk.Window.__init__(self, gtk.WINDOW_TOPLEVEL)
         self.set_modal(True)
-        self.set_type_hint(gtk.gdk.WINDOW_TYPE_HINT_DIALOG)
+        self.set_type_hint(Gdk.WINDOW_TYPE_HINT_DIALOG)
         self.set_title(title)
         if parent:
             self.set_transient_for(parent)
@@ -513,7 +515,7 @@ class LatLonEntry(gtk.Entry):
         if string is None:
             return
 
-        deg = u"\u00b0"
+        deg = "\\u00b0"
 
         while " " in string:
             if "." in string:
@@ -544,7 +546,7 @@ class LatLonEntry(gtk.Entry):
         return degrees + (minutes / 60.0)
 
     def parse_dms(self, string):
-        string = string.replace(u"\u00b0", " ")
+        string = string.replace("\\u00b0", " ")
         string = string.replace('"', ' ')
         string = string.replace("'", ' ')
         string = string.replace('  ', ' ')
@@ -588,7 +590,7 @@ class LatLonEntry(gtk.Entry):
             except:
                 try:
                     return self.parse_dms(string)
-                except Exception, e:
+                except Exception as e:
                     LOG.error("DMS: %s" % e)
 
         raise Exception("Invalid format")
@@ -679,7 +681,7 @@ class FilenameBox(gtk.HBox):
 
 
 def make_pixbuf_choice(options, default=None):
-    store = gtk.ListStore(gtk.gdk.Pixbuf, gobject.TYPE_STRING)
+    store = gtk.ListStore(Pixbuf, gobject.TYPE_STRING)
     box = gtk.ComboBox(store)
 
     cell = gtk.CellRendererPixbuf()
@@ -737,9 +739,9 @@ def test():
 
     def print_val(entry):
         if entry.validate():
-            print "Valid: %s" % entry.value()
+            print(("Valid: %s" % entry.value()))
         else:
-            print "Invalid"
+            print("Invalid")
     lle.connect("activate", print_val)
 
     lle.set_text("45 13 12")
@@ -749,7 +751,7 @@ def test():
     except KeyboardInterrupt:
         pass
 
-    print lst.get_values()
+    print((lst.get_values()))
 
 
 if __name__ == "__main__":

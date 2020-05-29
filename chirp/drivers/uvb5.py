@@ -176,7 +176,7 @@ struct {
 def do_ident(radio):
     radio.pipe.timeout = 3
     radio.pipe.write("\x05PROGRAM")
-    for x in xrange(10):
+    for x in range(10):
         ack = radio.pipe.read(1)
         if ack == '\x06':
             break
@@ -315,7 +315,7 @@ class BaofengUVB5(chirp_common.CloneModeRadio,
                           (220000000, 269000000),
                           (400000000, 520000000)]
         rf.valid_modes = ["FM", "NFM"]
-        rf.valid_special_chans = self.SPECIALS.keys()
+        rf.valid_special_chans = list(self.SPECIALS.keys())
         rf.valid_power_levels = POWER_LEVELS
         rf.has_ctone = True
         rf.has_bank = False
@@ -328,7 +328,7 @@ class BaofengUVB5(chirp_common.CloneModeRadio,
             self._mmap = do_download(self)
         except errors.RadioError:
             raise
-        except Exception, e:
+        except Exception as e:
             raise errors.RadioError("Failed to communicate with radio: %s" % e)
         self.process_mmap()
 
@@ -337,7 +337,7 @@ class BaofengUVB5(chirp_common.CloneModeRadio,
             do_upload(self)
         except errors.RadioError:
             raise
-        except Exception, e:
+        except Exception as e:
             raise errors.RadioError("Failed to communicate with radio: %s" % e)
 
     def process_mmap(self):
@@ -385,7 +385,7 @@ class BaofengUVB5(chirp_common.CloneModeRadio,
         if isinstance(number, str):
             return (getattr(self._memobj, number.lower()), None)
         elif number < 0:
-            for k, v in SPECIALS.items():
+            for k, v in list(SPECIALS.items()):
                 if number == v:
                     return (getattr(self._memobj, k.lower()), None)
         else:
@@ -770,7 +770,7 @@ class BaofengUVB5(chirp_common.CloneModeRadio,
                     else:
                         LOG.debug("Setting %s = %s" % (setting, element.value))
                         setattr(obj, setting, element.value)
-                except Exception, e:
+                except Exception as e:
                     LOG.debug(element.get_name())
                     raise
 
@@ -786,7 +786,7 @@ class BaofengUVB5(chirp_common.CloneModeRadio,
                 LOG.debug("Setting fm_presets[%1i] = %s" % (index, value))
                 setting = self._memobj.fm_presets
                 setting[index] = value
-            except Exception, e:
+            except Exception as e:
                 LOG.debug(element.get_name())
                 raise
 

@@ -13,9 +13,9 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import gtk
-import gobject
-import pango
+from gi.repository import Gtk as gtk
+from gi.repository import GObject as gobject
+from gi.repository import Pango as pango
 
 import threading
 import time
@@ -114,9 +114,9 @@ class RadioJob:
                                         str(self.kwargs)))
             DBG(self.desc)
             result = func(*self.args, **self.kwargs)
-        except errors.InvalidMemoryLocation, e:
+        except errors.InvalidMemoryLocation as e:
             result = e
-        except Exception, e:
+        except Exception as e:
             LOG.error("Exception running RadioJob: %s" % e)
             log_exception()
             LOG.error("Job Args:   %s" % str(self.args))
@@ -134,7 +134,7 @@ class RadioJob:
 
         try:
             func = getattr(self.target, self.func)
-        except AttributeError, e:
+        except AttributeError as e:
             LOG.error("No such radio function `%s' in %s" %
                       (self.func, self.target))
             return
@@ -214,7 +214,7 @@ class RadioThread(threading.Thread, gobject.GObject):
         self._qlock()
 
         if priority is None:
-            for i in self.__queue.keys():
+            for i in list(self.__queue.keys()):
                 self.__queue[i] = []
         else:
             self.__queue[priority] = []

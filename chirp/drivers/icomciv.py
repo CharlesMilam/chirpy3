@@ -673,7 +673,7 @@ def probe_model(ser):
     f = Frame()
     f.set_command(0x19, 0x00)
 
-    for model, controller in CIV_MODELS.keys():
+    for model, controller in list(CIV_MODELS.keys()):
         f.send(model, controller, ser)
         try:
             f.read(ser)

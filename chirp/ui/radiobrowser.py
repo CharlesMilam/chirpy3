@@ -1,6 +1,6 @@
-import gtk
-import gobject
-import pango
+from gi.repository import Gtk as gtk
+from gi.repository import GObject as gobject
+from gi.repository import Pango as pango
 import re
 import os
 import logging
@@ -254,7 +254,7 @@ class RadioBrowser(common.Editor):
         iter = self._store.append(parent, (name, obj))
 
         if isinstance(obj, bitwise.structDataElement):
-            for name, item in obj.items():
+            for name, item in list(obj.items()):
                 if isinstance(item, bitwise.structDataElement):
                     self._fill(name, item, iter)
                 elif isinstance(item, bitwise.arrayDataElement):
@@ -289,7 +289,7 @@ class RadioBrowser(common.Editor):
 
         self._display.foreach(abandon)
 
-        for name, item in obj.items():
+        for name, item in list(obj.items()):
             if item.size() % 8 == 0:
                 name = '<b>%s</b> <small>(%s %i bytes)</small>' % (
                     name, bitwise_type(classname(item)), item.size() / 8)

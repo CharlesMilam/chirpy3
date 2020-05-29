@@ -16,15 +16,15 @@
 
 import threading
 
-import gtk
-import pango
-from gobject import TYPE_INT, \
+from gi.repository import Gtk as gtk
+from gi.repository import Pango as pango
+from gi.repository.GObject import TYPE_INT, \
     TYPE_DOUBLE as TYPE_FLOAT, \
     TYPE_STRING, \
     TYPE_BOOLEAN, \
     TYPE_PYOBJECT, \
     TYPE_INT64
-import gobject
+from gi.repository import GObject as gobject
 import pickle
 import os
 import logging
@@ -178,7 +178,7 @@ class MemoryEditor(common.Editor):
 
         try:
             new = chirp_common.parse_freq(new)
-        except ValueError, e:
+        except ValueError as e:
             LOG.error("chirp_common.parse_freq error: %s", e)
             new = None
 
@@ -432,7 +432,7 @@ class MemoryEditor(common.Editor):
 
     def insert_new(self, iter, loc=None):
         line = []
-        for key, val in self.defaults.items():
+        for key, val in list(self.defaults.items()):
             line.append(self.col(key))
             line.append(val)
 
@@ -701,7 +701,7 @@ class MemoryEditor(common.Editor):
             raw[which] = _("Memory {number}").format(number=which) + \
                 os.linesep + result
 
-            if len(raw.keys()) == 2:
+            if len(list(raw.keys())) == 2:
                 diff = common.simple_diff(raw[loc_a], raw[loc_b])
                 gobject.idle_add(common.show_diff_blob,
                                  _("Diff of {a} and {b}").format(a=loc_a,
@@ -939,7 +939,7 @@ class MemoryEditor(common.Editor):
 
     def cell_editing_stopped(self, *args):
         self._in_editing = False
-        print 'Would activate %s' % str(self._edit_path)
+        print(('Would activate %s' % str(self._edit_path)))
         self.view.grab_focus()
         self.view.set_cursor(*self._edit_path)
 
@@ -972,7 +972,7 @@ class MemoryEditor(common.Editor):
                 for i in col_order:
                     if i not in default_col_order:
                         raise Exception()
-        except Exception, e:
+        except Exception as e:
             LOG.error("column order setting: %s", e)
             col_order = default_col_order
 
@@ -1161,7 +1161,7 @@ class MemoryEditor(common.Editor):
         mem.empty = not vals[self.col("_filled")]
 
     def _get_memory(self, iter):
-        vals = self.store.get(iter, *range(0, len(self.cols)))
+        vals = self.store.get(iter, *list(range(0, len(self.cols))))
         mem = chirp_common.Memory()
         self._set_mem_vals(mem, vals, iter)
 
@@ -1572,7 +1572,7 @@ class DstarMemoryEditor(MemoryEditor):
             d_unless_mode("DV")
 
     def _get_memory(self, iter):
-        vals = self.store.get(iter, *range(0, len(self.cols)))
+        vals = self.store.get(iter, *list(range(0, len(self.cols))))
         if vals[self.col(_("Mode"))] != "DV":
             return MemoryEditor._get_memory(self, iter)
 

@@ -17,14 +17,14 @@
 from datetime import datetime
 import os
 import tempfile
-import urllib
+import urllib.request, urllib.parse, urllib.error
 import webbrowser
 from glob import glob
 import shutil
 import time
 import logging
-import gtk
-import gobject
+from gi.repository import Gtk as gtk
+from gi.repository import GObject as gobject
 import sys
 
 from chirp.ui import inputdialog, common
@@ -45,7 +45,7 @@ if __name__ == "__main__":
 
 try:
     import serial
-except ImportError, e:
+except ImportError as e:
     common.log_exception()
     common.show_error("\nThe Pyserial module is not installed!")
 
@@ -140,7 +140,7 @@ class ChirpMain(gtk.Window):
             "memedit": ["view", "edit"],
         }
 
-        for _editortype, actions in mappings.items():
+        for _editortype, actions in list(mappings.items()):
             for _action in actions:
                 action = self.menu_ag.get_action(_action)
                 action.set_sensitive(editortype.startswith(_editortype))
@@ -275,7 +275,7 @@ class ChirpMain(gtk.Window):
 
     def _do_manual_select(self, filename):
         radiolist = {}
-        for drv, radio in directory.DRV_TO_RADIO.items():
+        for drv, radio in list(directory.DRV_TO_RADIO.items()):
             if not issubclass(radio, chirp_common.CloneModeRadio):
                 continue
             radiolist["%s %s" % (radio.VENDOR, radio.MODEL)] = drv
@@ -374,7 +374,7 @@ of file.
                 if not radio:
                     return
                 LOG.debug("Manually selected %s" % radio)
-            except Exception, e:
+            except Exception as e:
                 common.log_exception()
                 common.show_error(os.path.basename(fname) + ": " + str(e))
                 return
@@ -384,7 +384,7 @@ of file.
             eset = editorset.EditorSet(radio, self,
                                        filename=fname,
                                        tempname=tempname)
-        except Exception, e:
+        except Exception as e:
             common.log_exception()
             common.show_error(
                 _("There was an error opening {fname}: {error}").format(
@@ -491,7 +491,7 @@ of file.
 
         try:
             eset.save(fname)
-        except Exception, e:
+        except Exception as e:
             d = inputdialog.ExceptionDialog(e)
             d.run()
             d.destroy()
@@ -542,9 +542,9 @@ of file.
                 _("Open recent file {name}").format(name=fname), "")
             action.connect("activate", lambda a, f: self.do_open(f), fname)
             mid = self.menu_uim.new_merge_id()
-            self.menu_uim.add_ui(mid, path,
-                                 action_name, action_name,
-                                 gtk.UI_MANAGER_MENUITEM, False)
+#            self.menu_uim.add_ui(mid, path,
+#                                 action_name, action_name,
+#                                 gtk.UI_MANAGER_MENUITEM, False)
             self.menu_ag.add_action(action)
             i += 1
 
@@ -574,7 +574,7 @@ of file.
             try:
                 shutil.copy(fn, stock_dir)
                 LOG.debug("Copying %s -> %s" % (fn, stock_dir))
-            except Exception, e:
+            except Exception as e:
                 LOG.error("Unable to copy %s to %s: %s" % (fn, stock_dir, e))
                 return False
         return True
@@ -584,7 +584,7 @@ of file.
         if not os.path.isdir(stock_dir):
             try:
                 os.mkdir(stock_dir)
-            except Exception, e:
+            except Exception as e:
                 LOG.error("Unable to create directory: %s" % stock_dir)
                 return
         if not self.copy_shipped_stock_configs(stock_dir):
@@ -601,9 +601,9 @@ of file.
                                 "")
             action.connect("activate", self.import_stock_config, config)
             mid = self.menu_uim.new_merge_id()
-            mid = self.menu_uim.add_ui(mid, path,
-                                       action_name, action_name,
-                                       gtk.UI_MANAGER_MENUITEM, False)
+#            mid = self.menu_uim.add_ui(mid, path,
+#                                       action_name, action_name,
+#                                       gtk.UI_MANAGER_MENUITEM, False)
             self.menu_ag.add_action(action)
 
         def _do_open_action(config):
@@ -617,9 +617,9 @@ of file.
                                 "")
             action.connect("activate", lambda a, c: self.do_open(c), config)
             mid = self.menu_uim.new_merge_id()
-            mid = self.menu_uim.add_ui(mid, path,
-                                       action_name, action_name,
-                                       gtk.UI_MANAGER_MENUITEM, False)
+#            mid = self.menu_uim.add_ui(mid, path,
+#                                       action_name, action_name,
+#                                       gtk.UI_MANAGER_MENUITEM, False)
             self.menu_ag.add_action(action)
 
         configs = glob(os.path.join(stock_dir, "*.csv"))
@@ -730,7 +730,7 @@ of file.
                                 rtscts=rclass.HARDWARE_FLOW,
                                 timeout=0.25)
             ser.flushInput()
-        except serial.SerialException, e:
+        except serial.SerialException as e:
             d = inputdialog.ExceptionDialog(e)
             d.run()
             d.destroy()
@@ -776,7 +776,7 @@ of file.
                                 rtscts=radio.HARDWARE_FLOW,
                                 timeout=0.25)
             ser.flushInput()
-        except serial.SerialException, e:
+        except serial.SerialException as e:
             d = inputdialog.ExceptionDialog(e)
             d.run()
             d.destroy()
@@ -910,7 +910,7 @@ of file.
                 radio = dmrmarc.DMRMARCRadio(None)
                 radio.set_params(city, state, country)
                 self.do_open_live(radio, read_only=True)
-            except errors.RadioError, e:
+            except errors.RadioError as e:
                 common.show_error(e)
 
         self.window.set_cursor(None)
@@ -935,20 +935,20 @@ of file.
                 code = int(CONF.get("state", "repeaterbook"))
             except:
                 code = CONF.get("state", "repeaterbook")
-            for k, v in fips.FIPS_STATES.items():
+            for k, v in list(fips.FIPS_STATES.items()):
                 if code == v:
                     default_state = k
                     break
 
             code = CONF.get("county", "repeaterbook")
-            items = fips.FIPS_COUNTIES[fips.FIPS_STATES[default_state]].items()
+            items = list(fips.FIPS_COUNTIES[fips.FIPS_STATES[default_state]].items())
             for k, v in items:
                 if code == v:
                     default_county = k
                     break
 
             code = int(CONF.get("band", "repeaterbook"))
-            for k, v in RB_BANDS.items():
+            for k, v in list(RB_BANDS.items()):
                 if code == v:
                     default_band = k
                     break
@@ -960,7 +960,7 @@ of file.
         county = miscwidgets.make_choice(
             sorted(fips.FIPS_COUNTIES[fips.FIPS_STATES[default_state]].keys()),
             False, default_county)
-        band = miscwidgets.make_choice(sorted(RB_BANDS.keys(), key=key_bands),
+        band = miscwidgets.make_choice(sorted(list(RB_BANDS.keys()), key=key_bands),
                                        False, default_band)
 
         def _changed(box, county):
@@ -1021,7 +1021,7 @@ of file.
         query = query % (code,
                          band and band or "%%",
                          county and county or "%%")
-        print query
+        print(query)
 
         # Do this in case the import process is going to take a while
         # to make sure we process events leading up to this
@@ -1030,7 +1030,7 @@ of file.
             gtk.main_iteration(False)
 
         fn = tempfile.mktemp(".csv")
-        filename, headers = urllib.urlretrieve(query, fn)
+        filename, headers = urllib.request.urlretrieve(query, fn)
         if not os.path.exists(filename):
             LOG.error("Failed, headers were: %s", headers)
             common.show_error(_("RepeaterBook query failed"))
@@ -1045,11 +1045,11 @@ of file.
                                             ("query=%s\n" % query) +
                                             ("\n") +
                                             ("\n".join(radio.errors)))
-        except errors.InvalidDataError, e:
+        except errors.InvalidDataError as e:
             common.show_error(str(e))
             self.window.set_cursor(None)
             return
-        except Exception, e:
+        except Exception as e:
             common.log_exception()
 
         reporting.report_model_usage(radio, "import", True)
@@ -1065,7 +1065,7 @@ of file.
         default_band = "--All--"
         try:
             code = int(CONF.get("band", "repeaterbook"))
-            for k, v in RB_BANDS.items():
+            for k, v in list(RB_BANDS.items()):
                 if code == v:
                     default_band = k
                     break
@@ -1074,7 +1074,7 @@ of file.
         fields = {"1Location":  (gtk.Entry(), lambda x: x.get_text()),
                   "2Distance":  (gtk.Entry(), lambda x: x.get_text()),
                   "3Band":      (miscwidgets.make_choice(
-                                sorted(RB_BANDS.keys(), key=key_bands),
+                                sorted(list(RB_BANDS.keys()), key=key_bands),
                                 False, default_band),
                                 lambda x: RB_BANDS[x.get_active_text()]),
                   }
@@ -1089,7 +1089,7 @@ of file.
 
         while d.run() == gtk.RESPONSE_OK:
             valid = True
-            for k, (widget, fn) in fields.items():
+            for k, (widget, fn) in list(fields.items()):
                 try:
                     CONF.set(k[1:].lower(), str(fn(widget)), "repeaterbook")
                     continue
@@ -1127,7 +1127,7 @@ of file.
 
         query = "http://chirp.danplanet.com/query/rb/1.0/app_direct" \
                 "?loc=%s&band=%s&dist=%s" % (loc, band, dist)
-        print query
+        print(query)
 
         # Do this in case the import process is going to take a while
         # to make sure we process events leading up to this
@@ -1136,7 +1136,7 @@ of file.
             gtk.main_iteration(False)
 
         fn = tempfile.mktemp(".csv")
-        filename, headers = urllib.urlretrieve(query, fn)
+        filename, headers = urllib.request.urlretrieve(query, fn)
         if not os.path.exists(filename):
             LOG.error("Failed, headers were: %s", headers)
             common.show_error(_("RepeaterBook query failed"))
@@ -1151,11 +1151,11 @@ of file.
                                             ("query=%s\n" % query) +
                                             ("\n") +
                                             ("\n".join(radio.errors)))
-        except errors.InvalidDataError, e:
+        except errors.InvalidDataError as e:
             common.show_error(str(e))
             self.window.set_cursor(None)
             return
-        except Exception, e:
+        except Exception as e:
             common.log_exception()
 
         reporting.report_model_usage(radio, "import", True)
@@ -1197,7 +1197,7 @@ of file.
         while d.run() == gtk.RESPONSE_OK:
             query = "http://przemienniki.net/export/chirp.csv?"
             args = []
-            for name, (value, fn) in fields.items():
+            for name, (value, fn) in list(fields.items()):
                 if isinstance(value, gtk.Entry):
                     contents = value.get_text()
                 else:
@@ -1226,7 +1226,7 @@ of file.
             return
 
         fn = tempfile.mktemp(".csv")
-        filename, headers = urllib.urlretrieve(url, fn)
+        filename, headers = urllib.request.urlretrieve(url, fn)
         if not os.path.exists(filename):
             LOG.error("Failed, headers were: %s", str(headers))
             common.show_error(_("Query failed"))
@@ -1239,7 +1239,7 @@ of file.
 
         try:
             radio = PRRadio(filename)
-        except Exception, e:
+        except Exception as e:
             common.show_error(str(e))
             return
 
@@ -1378,7 +1378,7 @@ of file.
                 radio = radioreference.RadioReferenceRadio(None)
                 radio.set_params(zipcode, username, passwd)
                 self.do_open_live(radio, read_only=True)
-            except errors.RadioError, e:
+            except errors.RadioError as e:
                 common.show_error(e)
 
         self.window.set_cursor(None)
@@ -1517,7 +1517,7 @@ of file.
             conf = config.get("memedit")
             conf.set_bool("hide_unused", action.get_active())
         else:
-            for editortype, editor in eset.editors.iteritems():
+            for editortype, editor in list(eset.editors.items()):
                 if "memedit" in editortype:
                     editor.set_hide_unused(action.get_active())
 
@@ -1620,7 +1620,7 @@ of file.
             # See this for why:
             # http://stackoverflow.com/questions/2904274/globals-and-locals-in-python-exec
             exec(pyc, globals(), globals())
-        except Exception, e:
+        except Exception as e:
             common.log_exception()
             common.show_error("Unable to load module: %s" % e)
 
@@ -1934,12 +1934,12 @@ of file.
         box = gtk.HBox(False, 2)
 
         self.sb_general = gtk.Statusbar()
-        self.sb_general.set_has_resize_grip(False)
+        #self.sb_general.set_has_resize_grip(False)
         self.sb_general.show()
         box.pack_start(self.sb_general, 1, 1, 1)
 
         self.sb_radio = gtk.Statusbar()
-        self.sb_radio.set_has_resize_grip(True)
+        #self.sb_radio.set_has_resize_grip(True)
         self.sb_radio.show()
         box.pack_start(self.sb_radio, 1, 1, 1)
 
@@ -2065,7 +2065,7 @@ of file.
             allocation = window.get_allocation()
             CONF.set_int("window_w", allocation.width, "state")
             CONF.set_int("window_h", allocation.height, "state")
-        self.connect("expose_event", expose)
+        self.connect("draw", expose)
 
         def state_change(window, event):
             CONF.set_bool(

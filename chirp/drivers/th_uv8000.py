@@ -520,8 +520,8 @@ class THUV8000Radio(chirp_common.CloneModeRadio):
     FIRST_FREQ_INDEX = -1
     LAST_FREQ_INDEX = -2
 
-    SPECIAL_MEMORIES_REV = dict(zip(SPECIAL_MEMORIES.values(),
-                                    SPECIAL_MEMORIES.keys()))
+    SPECIAL_MEMORIES_REV = dict(list(zip(list(SPECIAL_MEMORIES.values()),
+                                    list(SPECIAL_MEMORIES.keys()))))
 
     @classmethod
     def get_prompts(cls):
@@ -1486,6 +1486,6 @@ class THUV8000Radio(chirp_common.CloneModeRadio):
                     elif element.value.get_mutable():
                         LOG.debug("Setting %s = %s" % (setting, element.value))
                         setattr(obj, setting, element.value)
-                except Exception, e:
+                except Exception as e:
                     LOG.debug(element.get_name())
                     raise

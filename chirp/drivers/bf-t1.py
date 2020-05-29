@@ -225,7 +225,7 @@ def _start_clone_mode(radio, status):
 
     except errors.RadioError:
         raise
-    except Exception, e:
+    except Exception as e:
         raise errors.RadioError("Error sending Magic to radio:\n%s" % e)
 
 
@@ -503,7 +503,7 @@ class BFT1(chirp_common.CloneModeRadio, chirp_common.ExperimentalRadio):
         """Get the radio's features"""
 
         rf = chirp_common.RadioFeatures()
-        rf.valid_special_chans = SPECIALS.keys()
+        rf.valid_special_chans = list(SPECIALS.keys())
         rf.has_settings = True
         rf.has_bank = False
         rf.has_tuning_step = False
@@ -561,7 +561,7 @@ class BFT1(chirp_common.CloneModeRadio, chirp_common.ExperimentalRadio):
             _upload(self)
         except errors.RadioError:
             raise
-        except Exception, e:
+        except Exception as e:
             raise errors.RadioError("Error: %s" % e)
 
     def _decode_tone(self, val, inv):
@@ -620,7 +620,7 @@ class BFT1(chirp_common.CloneModeRadio, chirp_common.ExperimentalRadio):
         if isinstance(number, str):
             return (getattr(self._memobj, number.lower()))
         elif number < 0:
-            for k, v in SPECIALS.items():
+            for k, v in list(SPECIALS.items()):
                 if number == v:
                     return (getattr(self._memobj, k.lower()))
         else:
@@ -894,7 +894,7 @@ class BFT1(chirp_common.CloneModeRadio, chirp_common.ExperimentalRadio):
                     setattr(_settings, name, value)
 
                 LOG.debug("Setting %s: %s" % (name, value))
-            except Exception, e:
+            except Exception as e:
                 LOG.debug(element.get_name())
                 raise
 

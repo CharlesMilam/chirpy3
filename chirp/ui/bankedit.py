@@ -13,12 +13,12 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import gtk
-import gobject
+from gi.repository import Gtk as gtk
+from gi.repository import GObject as gobject
 import time
 import logging
 
-from gobject import TYPE_INT, TYPE_STRING, TYPE_BOOLEAN
+from gi.repository.GObject import TYPE_INT, TYPE_STRING, TYPE_BOOLEAN
 
 from chirp import chirp_common
 from chirp.ui import common, miscwidgets
